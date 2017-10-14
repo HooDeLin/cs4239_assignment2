@@ -26,8 +26,15 @@ This is related to software security because C struct members are not guaranteed
 
 ## Reading C++ and LLVM source code
 
-
-
+* Use `errs()` to print out debug messages. Using `cout` will not print at the
+correct place because `errs()` prints to `stderr`, and `stdout` output only appears
+after `stderr` messages.
+* Everything in `llvm` namespace has a `.dump()` method, which prints out what
+they to `stderr`. Pretty useful for debugging.
+* `llvm::Instruction` is a derived class of `llvm::Value`, which has a
+`getName()` function that returns a `StringRef`. You can call `.str()` on a
+`StringRef` to retrieve the contents as a `std::string`
+* In our code, `I` has type `llvm::Instruction`
 
 ## Links
 * How to interpret LLVM documentation's Inheritance Graphs: [Link](http://users.elis.ugent.be/~jvcleemp/LLVM-2.4-doxygen/graph_legend.html)

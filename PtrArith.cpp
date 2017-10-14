@@ -137,7 +137,7 @@ static void mapRegsToType(const char *name, Module *M) {
   // What is a Value *?
   // I know it's a pointer to Value, but what is Value?
   map<Value *, bool> interesting;
-  map<Value *, Type *> reg_type_map;
+  map<std::string, Type *> name_type_map;
  
   // `auto` keyword in C++11 means automatic type inference
   // Prior to C++11, it meant automatic lifetime, which was already implicitly
@@ -146,21 +146,24 @@ static void mapRegsToType(const char *name, Module *M) {
   for (auto &F : *M) {
     for (auto &BB : F) {
       for (auto &I : BB) {
-        // I has type llvm::Instruction
-        // Printing the instructions to stderr
-        // I.dump();
-
         // Variables
-        Value *val_ptr = nullptr;
+        Value *val_ptr = nullptr; // not sure what this is needed for atm
         PointerType *ptr_type = nullptr;
-
-        // Check if I is an alloca
-        if (AllocaInst *ret = dyn_cast<AllocaInst>(&I)) {
+        std::string name = "";
+  
+        // Map name to type for alloca instructions
+        if (AllocaInst *AI = dyn_cast<AllocaInst>(&I)) {
           // getType() returns pointer to PointerType
-          ptr_type = ret->getType();
-          errs() << "Pointer type: ";
+          ptr_type = AI->getType();
+          name = AI->getName().str();
+
+          // Print out nicely, can remove in the future
+          errs() << name << " has type: ";
           ptr_type->dump(); 
           errs() << "\n";
+
+          // Insert into map
+          name_type_map.insert(make_pair(name, ptr_type));
         }
 
         // Check if I is load
