@@ -21,3 +21,11 @@ This is related to software security because C struct members are not guaranteed
     * Structs
     * And basically every single other type that’s not an array 
   * When we encounter a bug, print out to the screen. Or print all of them at the end, whichever way works.
+
+# Helpful information
+
+* How to interpret LLVM documentation's Inheritance Graphs: [Link](http://users.elis.ugent.be/~jvcleemp/LLVM-2.4-doxygen/graph_legend.html)
+* [GetElementPtrInst](http://llvm.org/doxygen/classllvm_1_1GetElementPtrInst.html)
+* [LoadInst](http://llvm.org/doxygen/classllvm_1_1LoadInst.html)
+* [StoreInst](http://llvm.org/doxygen/classllvm_1_1StoreInst.html)
+* [AllocaInst](http://llvm.org/doxygen/classllvm_1_1AllocaInst.html)
