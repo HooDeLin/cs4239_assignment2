@@ -24,6 +24,12 @@ This is related to software security because C struct members are not guaranteed
 
 # Helpful information
 
+## Reading C++ and LLVM source code
+
+
+
+
+## Links
 * How to interpret LLVM documentation's Inheritance Graphs: [Link](http://users.elis.ugent.be/~jvcleemp/LLVM-2.4-doxygen/graph_legend.html)
 * [GetElementPtrInst](http://llvm.org/doxygen/classllvm_1_1GetElementPtrInst.html)
 * [LoadInst](http://llvm.org/doxygen/classllvm_1_1LoadInst.html)
