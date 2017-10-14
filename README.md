@@ -37,7 +37,13 @@ they to `stderr`. Pretty useful for debugging.
 * In our code, `I` has type `llvm::Instruction`
 
 ## Links
+
+The links to the source code are much more useful, since we are using `llvm-3.4.2`, but the generated documentation is only for `llvm-6.0.0`. The official documentation links are still included here because the inheritance graphs could be helpful.
+
 * How to interpret LLVM documentation's Inheritance Graphs: [Link](http://users.elis.ugent.be/~jvcleemp/LLVM-2.4-doxygen/graph_legend.html)
+* [Instruction.cpp](https://github.com/llvm-mirror/llvm/blob/release_34/lib/IR/Instruction.cpp)
+* [Instructions.cpp](https://github.com/llvm-mirror/llvm/blob/release_34/include/llvm/IR/Instructions.h)
+* [Value.cpp](https://github.com/llvm-mirror/llvm/blob/release_34/lib/IR/Value.cpp)
 * [GetElementPtrInst](http://llvm.org/doxygen/classllvm_1_1GetElementPtrInst.html)
 * [LoadInst](http://llvm.org/doxygen/classllvm_1_1LoadInst.html)
 * [StoreInst](http://llvm.org/doxygen/classllvm_1_1StoreInst.html)
