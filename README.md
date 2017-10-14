@@ -1,2 +1,3 @@
-# cs4239_assignment2
-Using LLVM to check for pointer arithmetic done on non-array variables
+#Using LLVM to check for pointer arithmetic done on non-array variables
+
+We are trying to do an analysis on pointer arithmetic on non-array objects. This is the link for the SEI CERT C standard (https://www.securecoding.cert.org/confluence/display/c/ARR37-C.+Do+not+add+or+subtract+an+integer+to+a+pointer+to+a+non-array+object). This is related to software security because C struct members are not guaranteed to be contiguous. Hence, there might be an exploit where a program iterating through a struct of function pointers (via pointer arithmetic) and executing them ends up executing the an attacker’s injected functions.
