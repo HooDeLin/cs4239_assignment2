@@ -140,10 +140,16 @@ static void mapRegsToType(const char *name, Module *M) {
   map<std::string, Type *> name_type_map;
  
   // `auto` keyword in C++11 means automatic type inference
-  // Prior to C++11, it meant automatic lifetime, which was already implicitly
-  // declared 
+  // Prior to C++11, it meant automatic lifetime, which was implicitly declared
   // C++11 Ranged-based for loop
   for (auto &F : *M) {
+    // To catch types of parameters
+    // Might include values we don't need, since LLVM auto-generated functions
+    // would be here too, not just the source code declared functions
+    for (auto &A : F.getArgumentList()) {
+      name_type_map.insert(make_pair(A.getName().str(), A.getType()));
+    }
+
     for (auto &BB : F) {
       for (auto &I : BB) {
         // Variables
@@ -158,9 +164,9 @@ static void mapRegsToType(const char *name, Module *M) {
           name = AI->getName().str();
 
           // Print out nicely, can remove in the future
-          errs() << name << " has type: ";
-          ptr_type->dump(); 
-          errs() << "\n";
+          //errs() << name << " has type: ";
+          //ptr_type->dump(); 
+          //errs() << "\n";
 
           // Insert into map
           name_type_map.insert(make_pair(name, ptr_type));
@@ -198,6 +204,13 @@ static void mapRegsToType(const char *name, Module *M) {
         addEscapingAllocas(Ptr, seen, escaping);
       }
     }
+  }
+  // Print the map
+  errs() << "===== Types of the names =====\n";
+  for (auto &x : name_type_map) {
+    errs() << x.first << " has type: ";
+    x.second->dump();
+    errs() << "\n";
   }
 
   // Print the results:
