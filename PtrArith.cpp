@@ -142,12 +142,6 @@ int validateName(std::string name) {
  * Registers to their LLVM types
  */
 static void mapRegsToType(const char *name, Module *M) {
-  // Probably don't need this, just ignore it first I guess
-  set<Value *> seen, escaping;
-
-  // What is a Value *?
-  // I know it's a pointer to Value, but what is Value?
-  map<Value *, bool> interesting;
   map<std::string, Type *> name_type_map;
  
   // `auto` keyword in C++11 means automatic type inference
@@ -167,7 +161,7 @@ static void mapRegsToType(const char *name, Module *M) {
     for (auto &BB : F) {
       for (auto &I : BB) {
         // Variables
-        Value *val_ptr = nullptr; // not sure what this is needed for atm
+        Value *val_ptr = nullptr; 
         PointerType *ptr_type = nullptr;
         std::string name = "";
  
@@ -175,6 +169,11 @@ static void mapRegsToType(const char *name, Module *M) {
           errs() << "==================" << "\n";
           I.dump();
           errs() << "==================" << "\n";
+          Value *foo = I.getOperand(0);
+          Value *bar = I.getOperand(1);
+          errs() << foo->getName() << "\n";
+          foo->dump();
+          bar->dump();
           errs() << "OMG I FOUND A BINARRYYY OPERAAAATORRRR" << "\n";
         }
 
@@ -233,25 +232,25 @@ static void mapRegsToType(const char *name, Module *M) {
         }
 
         // Check if I is store
-        //if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
-        //  errs() << "==================" << "\n";
-        //  I.dump();
-        //  errs() << "==================" << "\n";
-        //  // Extract the operands 
-        //  Value *val_operand = SI->getValueOperand();
-        //  Value *ptr_operand = SI->getPointerOperand();
-        //  errs() << "Value Operand of Store: " << val_operand->getName().str() << "\n";
-        //  errs() << "Pointer Operand of Store: " << ptr_operand->getName().str() << "\n";
+        if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
+          errs() << "==================" << "\n";
+          I.dump();
+          errs() << "==================" << "\n";
+          // Extract the operands 
+          Value *val_operand = SI->getValueOperand();
+          Value *ptr_operand = SI->getPointerOperand();
+          errs() << "Value Operand of Store: " << val_operand->getName().str() << "\n";
+          errs() << "Pointer Operand of Store: " << ptr_operand->getName().str() << "\n";
 
-        //  // Add PointerOperand to name_type_map with type of ValueOperand
-        //  std::string val_operand_name = val_operand->getName().str();
-        //  if (validateName(val_operand_name)) {
-        //    llvm::Type *val_operand_type = name_type_map.at(val_operand->getName().str());
-        //    std::string ptr_operand_name = ptr_operand->getName().str();
-        //    name_type_map.insert(make_pair(ptr_operand_name, val_operand_type));
-        //  }
+          // Add PointerOperand to name_type_map with type of ValueOperand
+          std::string val_operand_name = val_operand->getName().str();
+          if (validateName(val_operand_name)) {
+            llvm::Type *val_operand_type = name_type_map.at(val_operand->getName().str());
+            std::string ptr_operand_name = ptr_operand->getName().str();
+            name_type_map.insert(make_pair(ptr_operand_name, val_operand_type));
+          }
 
-        //}
+        }
       }
     }
   }
@@ -262,11 +261,6 @@ static void mapRegsToType(const char *name, Module *M) {
     x.second->dump();
     errs() << "\n";
   }
-
-  // Print the results:
-  printf("%s:\n", name);
-  for (auto &V: escaping)
-    V->dump();
 }
 
 /*
