@@ -219,7 +219,6 @@ static void mapRegsToType(const char *name, Module *M) {
           val_ptr = LI->getPointerOperand();
           errs() << "Pointer Operand: ";
           val_ptr->dump();
-          errs() << "xxxxxxxxxxxxxxxx" << "\n";
 
           Type *ptr_operand_type = LI->getPointerOperand()->getType();
           errs() << "Pointer Operand Type of LI: ";
@@ -227,9 +226,9 @@ static void mapRegsToType(const char *name, Module *M) {
           errs() << "\n";
 
           // Load instructions apparently don't have explicit names...
-          if ((name = LI->getName()) != NULL) {
+          //if ((name = LI->getName()) != NULL) {
             // Manually extract the name
-          }
+          //}
           //name_type_map.insert(make_pair(name, ptr_operand_type));
         }
 
