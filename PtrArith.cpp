@@ -76,7 +76,17 @@ std::string getStringFromInstPtr(Instruction *inst) {
 }
 
 std::string getPointerOperandFromLoadInst(LoadInst *loadInst) {
-  return loadInst->getPointerOperand()->getName().str();
+  if (loadInst->getPointerOperand()->getName().str().compare("")) {
+    return loadInst->getPointerOperand()->getName().str();
+  } else {
+    std::string type = getStringFromTypePtr(loadInst->getPointerOperand()->getType());
+    std::string instruction = getStringFromInstPtr(loadInst);
+    size_t pos = instruction.find(type);
+    instruction.erase(0, pos + type.length());
+    pos = instruction.find(',');
+    std::string pointerOperand = trimWhitespace(instruction.substr(0, pos));
+    return pointerOperand.erase(0,1);
+  }
 }
 
 std::string getPointerOperandFromGepInst(GetElementPtrInst *GEPI) {
@@ -178,16 +188,27 @@ static void mapRegsToType(const char *name, Module *M) {
         // Check if I is GetElementPtrInst
         if (GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(&I)) {
           // errs() << "==================" << "\n";
-          // I.dump();
+          I.dump();
           // errs() << "==================" << "\n";
           Type *ptr_operand_type = GEPI->getPointerOperandType();
           // errs() << "Pointer Operand Type of GEP: ";
           // ptr_operand_type->dump();
-          // errs() << "\n";
+          errs() << "\n";
           name = GEPI->getName().str();
           // errs() << "Name of lvalue: " << name << "\n";
           std::string ptr_operand = getPointerOperandFromGepInst(GEPI);
           name_type_map.insert(make_pair(name, ptr_operand_type));
+          if (!GEPI->hasAllZeroIndices()) {
+            // Check if this is from an array (ptr_operand)
+            std::string current = ptr_operand;
+            while(reg_relation_map.find(current) != reg_relation_map.end()) {
+              current = reg_relation_map.at(current);
+            }
+            if (array_reg.find(current) == array_reg.end()) {
+              errs() << "Oh No!!!!\n";
+            }
+          }
+          reg_relation_map.insert(make_pair(name, ptr_operand));
         }
 
         // Check if I is load
