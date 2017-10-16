@@ -40,6 +40,15 @@ std::string getOperandFromLoad(std::string instruction) {
   return tokens.at(0);
 }
 
+std::string getStringFromValuePtr(Value * val) {
+  // Returns the virtual register name from a Value *
+  std::string instruction, val_str;
+  raw_string_ostream rso(instruction);
+  val->print(rso);
+  val_str = getOperandFromLoad(instruction);
+  return val_str;
+}
+
 /*
  * First Pass of the algorithm
  * Runs through the LLVM instructions and maps all seen Virtual
@@ -73,12 +82,32 @@ static void mapRegsToType(const char *name, Module *M) {
           errs() << "==================" << "\n";
           I.dump();
           errs() << "==================" << "\n";
-          Value *foo = I.getOperand(0);
-          Value *bar = I.getOperand(1);
-          errs() << foo->getName() << "\n";
-          foo->dump();
-          bar->dump();
-          errs() << "OMG I FOUND A BINARRYYY OPERAAAATORRRR" << "\n";
+          Value *op1 = I.getOperand(0);
+          Value *op2 = I.getOperand(1);
+          Type *op1_type = op1->getType();
+
+          // Get the string representation of the virtual register
+          std::string op1_str, op2_str;
+          op1_str = getStringFromValuePtr(op1);
+          op2_str = getStringFromValuePtr(op2);
+
+          // Extract the lvalue's name
+          std::string instruction, name;
+          raw_string_ostream rso(instruction);
+          I.print(rso);
+          name = getOperandFromLoad(instruction);
+
+          // Type of both operands and result will be that of op1
+          name_type_map.insert(make_pair(op1_str, op1_type));
+          name_type_map.insert(make_pair(op2_str, op1_type));
+          name_type_map.insert(make_pair(name, op1_type));
+
+          errs() << "Operand 1: " << op1_str << "\n";
+          errs() << "Operand 2: " << op2_str << "\n";
+          errs() << "lvalue's name: " << name << "\n";
+          errs() << "Their types: ";
+          op1_type->dump();
+          errs() << "\n";
         }
 
 
@@ -127,6 +156,8 @@ static void mapRegsToType(const char *name, Module *M) {
           errs() << "Pointer Operand Type of LI: ";
           ptr_operand_type->dump();
           errs() << "\n";
+
+          // Extract the lvalue's name
           std::string instruction;
           raw_string_ostream rso(instruction);
           I.print(rso);
@@ -154,7 +185,7 @@ static void mapRegsToType(const char *name, Module *M) {
               std::string ptr_operand_name = ptr_operand->getName().str();
               name_type_map.insert(make_pair(ptr_operand_name, val_operand_type));
             } else {
-              errs() << val_operand_name << " is not in the map";
+              errs() << val_operand_name << " is not in the map" << "\n";
             }
           }
 
