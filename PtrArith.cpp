@@ -145,7 +145,7 @@ static void mapRegsToType(const char *name, Module *M) {
           name_type_map.insert(make_pair(op1_str, op1_type));
           name_type_map.insert(make_pair(op2_str, op1_type));
           name_type_map.insert(make_pair(name, op1_type));
-
+          reg_relation_map.insert(make_pair(name, op1_str));
           // errs() << "Operand 1: " << op1_str << "\n";
           // errs() << "Operand 2: " << op2_str << "\n";
           // errs() << "lvalue's name: " << name << "\n";
@@ -218,13 +218,13 @@ static void mapRegsToType(const char *name, Module *M) {
         // Check if I is store
         if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
           // errs() << "==================" << "\n";
-          I.dump();
+          // I.dump();
           // errs() << "==================" << "\n";
           // Extract the operands
           Value *val_operand = SI->getValueOperand();
           Value *ptr_operand = SI->getPointerOperand();
-          errs() << "Value Operand of Store: " << val_operand->getName().str() << "\n";
-          errs() << "Pointer Operand of Store: " << ptr_operand->getName().str() << "\n";
+          // errs() << "Value Operand of Store: " << val_operand->getName().str() << "\n";
+          // errs() << "Pointer Operand of Store: " << ptr_operand->getName().str() << "\n";
 
           // Add PointerOperand to name_type_map with type of ValueOperand
           if (val_operand->getName().str().compare("")) {
