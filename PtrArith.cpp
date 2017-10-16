@@ -41,6 +41,9 @@ std::string getOperandFromLoad(std::string instruction) {
   token.erase(token.begin(), std::find_if(token.begin(), token.end(), [](int ch) {
         return !std::isspace(ch);
   }));
+  token.erase(std::find_if(token.rbegin(), token.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), token.end());
   return token;
 }
 
