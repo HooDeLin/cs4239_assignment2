@@ -19,115 +19,6 @@
 using namespace llvm;
 using namespace std;
 
-/*
- * Test if a pointer is interesting (for the bonus).
- * I.e. is it a global or argument?
- */
-static bool isPointerInteresting(Value *Ptr, map<Value *, bool> &info)
-{
-  auto i = info.find(Ptr);
-  if (i != info.end())
-    return i->second;
-  info.insert(make_pair(Ptr, false));
-
-  bool interesting = false;
-  if (GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Ptr))
-    interesting = isPointerInteresting(GEP->getPointerOperand(), info);
-  else if (BitCastInst *Cast = dyn_cast<BitCastInst>(Ptr))
-    interesting = isPointerInteresting(Cast->getOperand(0), info);
-  else if (SelectInst *Select = dyn_cast<SelectInst>(Ptr))
-  {
-    interesting =
-      (isPointerInteresting(Select->getOperand(1), info) ||
-       isPointerInteresting(Select->getOperand(2), info));
-  }
-  else if (PHINode *PHI = dyn_cast<PHINode>(Ptr))
-  {
-    size_t numValues = PHI->getNumIncomingValues();
-    for (size_t i = 0; i < numValues; i++)
-    {
-      interesting = isPointerInteresting(PHI->getIncomingValue(i), info);
-      if (interesting)
-        break;
-    }
-  }
-  else if (isa<Argument>(Ptr) ||
-      isa<GlobalVariable>(Ptr))
-    interesting = true;
-
-  if (interesting) {
-    info.erase(Ptr);
-    info.insert(make_pair(Ptr, true));
-  }
-  return interesting;
-}
-
-/*
- * Traverse the IR (backwards) to find escaping allocas.
- */
-static void addEscapingAllocas(Value *Ptr, set<Value *> &seen, set<Value *> &escaping)
-{
-  if (seen.find(Ptr) != seen.end())
-    return;
-  seen.insert(Ptr);
-
-  if (GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Ptr))
-    addEscapingAllocas(GEP->getPointerOperand(), seen, escaping);
-  else if (BitCastInst *Cast = dyn_cast<BitCastInst>(Ptr))
-    addEscapingAllocas(Cast->getOperand(0), seen, escaping);
-  else if (SelectInst *Select = dyn_cast<SelectInst>(Ptr))
-  {
-    addEscapingAllocas(Select->getOperand(1), seen, escaping);
-    addEscapingAllocas(Select->getOperand(2), seen, escaping);
-  }
-  else if (PHINode *PHI = dyn_cast<PHINode>(Ptr))
-  {
-    size_t numValues = PHI->getNumIncomingValues();
-    for (size_t i = 0; i < numValues; i++)
-      addEscapingAllocas(PHI->getIncomingValue(i), seen, escaping);
-  }
-  else if (isa<AllocaInst>(Ptr))
-    escaping.insert(Ptr);
-}
-
-/*
- * Prints all escaping allocas.
- */
-static void escapeAnalysis(const char *name, Module *M)
-{
-  set<Value *> seen, escaping;
-  map<Value *, bool> interesting;
-  for (auto &F: *M)
-  {
-    for (auto &BB: F)
-    {
-      for (auto &I: BB)
-      {
-        // Check if is an escaping instruction:
-        Value *Ptr = nullptr;       // Escaping pointer
-        if (ReturnInst *Ret = dyn_cast<ReturnInst>(&I))
-          Ptr = Ret->getReturnValue();
-        else if (StoreInst *Store = dyn_cast<StoreInst>(&I))
-        {
-          // For the bonus:
-          Ptr = Store->getPointerOperand();
-          if (!isPointerInteresting(Ptr, interesting))
-            continue;
-          Ptr = Store->getValueOperand();
-        }
-        if (Ptr == nullptr || !isa<PointerType>(Ptr->getType()))
-          continue;
-        addEscapingAllocas(Ptr, seen, escaping);
-      }
-    }
-  }
-
-  // Print the results:
-  printf("%s:\n", name);
-  for (auto &V: escaping)
-    V->dump();
-}
-
 int validateName(std::string name) {
   // Checks if the name is prefixed with %
   // Used to filter out non-virtual-register names, which can happen in
@@ -226,7 +117,6 @@ static void mapRegsToType(const char *name, Module *M) {
         if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
           errs() << "==================" << "\n";
           I.dump();
-          errs() << "----" << name << "\n";
           errs() << "==================" << "\n";
           // Extract the operands
           val_ptr = LI->getPointerOperand();
