@@ -7,6 +7,9 @@
 #include "llvm/Support/SourceMgr.h"
 
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <istream>
 #include "llvm/Support/Debug.h"
 
 #include <cstdio>
@@ -136,6 +139,16 @@ int validateName(std::string name) {
   //return name[0] == '%';
 }
 
+std::string getOperandFromLoad(std::string instruction) {
+  std::stringstream ss(instruction);
+  std::string item;
+  vector<std::string> tokens;
+  while(std::getline(ss, item, '=')) {
+    tokens.push_back(item);
+  }
+  return tokens.at(0);
+}
+
 /*
  * First Pass of the algorithm
  * Runs through the LLVM instructions and maps all seen Virtual
@@ -213,6 +226,7 @@ static void mapRegsToType(const char *name, Module *M) {
         if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
           errs() << "==================" << "\n";
           I.dump();
+          errs() << "----" << name << "\n";
           errs() << "==================" << "\n";
           // Extract the operands
           val_ptr = LI->getPointerOperand();
@@ -223,12 +237,11 @@ static void mapRegsToType(const char *name, Module *M) {
           errs() << "Pointer Operand Type of LI: ";
           ptr_operand_type->dump();
           errs() << "\n";
-
-          // Load instructions apparently don't have explicit names...
-          //if ((name = LI->getName()) != NULL) {
-            // Manually extract the name
-          //}
-          //name_type_map.insert(make_pair(name, ptr_operand_type));
+          std::string instruction;
+          raw_string_ostream rso(instruction);
+          I.print(rso);
+          name = getOperandFromLoad(instruction);
+          name_type_map.insert(make_pair(name, ptr_operand_type));
         }
 
         // Check if I is store
@@ -245,12 +258,13 @@ static void mapRegsToType(const char *name, Module *M) {
           // Add PointerOperand to name_type_map with type of ValueOperand
           std::string val_operand_name = val_operand->getName().str();
           if (validateName(val_operand_name)) {
-            // This is the problem
             auto test = name_type_map.find(val_operand->getName().str());
             if (test != name_type_map.end()) {
               llvm::Type *val_operand_type = name_type_map.at(val_operand->getName().str());
               std::string ptr_operand_name = ptr_operand->getName().str();
               name_type_map.insert(make_pair(ptr_operand_name, val_operand_type));
+            } else {
+              errs() << val_operand_name << " is not in the map";
             }
           }
 
