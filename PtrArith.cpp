@@ -188,12 +188,12 @@ static void mapRegsToType(const char *name, Module *M) {
         // Check if I is GetElementPtrInst
         if (GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(&I)) {
           // errs() << "==================" << "\n";
-          I.dump();
+          // I.dump();
           // errs() << "==================" << "\n";
           Type *ptr_operand_type = GEPI->getPointerOperandType();
           // errs() << "Pointer Operand Type of GEP: ";
           // ptr_operand_type->dump();
-          errs() << "\n";
+          // errs() << "\n";
           name = GEPI->getName().str();
           // errs() << "Name of lvalue: " << name << "\n";
           std::string ptr_operand = getPointerOperandFromGepInst(GEPI);
@@ -205,7 +205,7 @@ static void mapRegsToType(const char *name, Module *M) {
               current = reg_relation_map.at(current);
             }
             if (array_reg.find(current) == array_reg.end()) {
-              errs() << "Oh No!!!!\n";
+              errs() << "Line " << GEPI->getDebugLoc().getLine() << ": Possible pointer arithmetic on non-array objects\n";
             }
           }
           reg_relation_map.insert(make_pair(name, ptr_operand));
@@ -273,11 +273,11 @@ static void mapRegsToType(const char *name, Module *M) {
 	//     errs() << ' ' << *it;
 	// errs()<<"\n";
   // Print the relation
-  errs() << "===== Registry relationships =====\n";
-  for (auto &x : reg_relation_map) {
-    errs() << x.first << " is derived from: " << x.second << "\n";
-    errs() << "\n";
-  }
+  // errs() << "===== Registry relationships =====\n";
+  // for (auto &x : reg_relation_map) {
+  //   errs() << x.first << " is derived from: " << x.second << "\n";
+  //   errs() << "\n";
+  // }
   // Print the map
   // errs() << "===== Types of the names =====\n";
   // for (auto &x : name_type_map) {
