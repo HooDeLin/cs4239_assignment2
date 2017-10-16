@@ -143,7 +143,7 @@ int validateName(std::string name) {
  */
 static void mapRegsToType(const char *name, Module *M) {
   map<std::string, Type *> name_type_map;
- 
+
   // `auto` keyword in C++11 means automatic type inference
   // Prior to C++11, it meant automatic lifetime, which was implicitly declared
   // C++11 Ranged-based for loop
@@ -161,10 +161,10 @@ static void mapRegsToType(const char *name, Module *M) {
     for (auto &BB : F) {
       for (auto &I : BB) {
         // Variables
-        Value *val_ptr = nullptr; 
+        Value *val_ptr = nullptr;
         PointerType *ptr_type = nullptr;
         std::string name = "";
- 
+
         if (isa<llvm::BinaryOperator>(&I)) {
           errs() << "==================" << "\n";
           I.dump();
@@ -188,7 +188,7 @@ static void mapRegsToType(const char *name, Module *M) {
           I.dump();
           errs() << "==================" << "\n";
           errs() << name << " has type: ";
-          ptr_type->dump(); 
+          ptr_type->dump();
           errs() << "\n";
 
           // Insert into map
@@ -214,7 +214,7 @@ static void mapRegsToType(const char *name, Module *M) {
           errs() << "==================" << "\n";
           I.dump();
           errs() << "==================" << "\n";
-          // Extract the operands 
+          // Extract the operands
           val_ptr = LI->getPointerOperand();
           errs() << "Pointer Operand: ";
           val_ptr->dump();
@@ -236,7 +236,7 @@ static void mapRegsToType(const char *name, Module *M) {
           errs() << "==================" << "\n";
           I.dump();
           errs() << "==================" << "\n";
-          // Extract the operands 
+          // Extract the operands
           Value *val_operand = SI->getValueOperand();
           Value *ptr_operand = SI->getPointerOperand();
           errs() << "Value Operand of Store: " << val_operand->getName().str() << "\n";
@@ -245,9 +245,13 @@ static void mapRegsToType(const char *name, Module *M) {
           // Add PointerOperand to name_type_map with type of ValueOperand
           std::string val_operand_name = val_operand->getName().str();
           if (validateName(val_operand_name)) {
-            llvm::Type *val_operand_type = name_type_map.at(val_operand->getName().str());
-            std::string ptr_operand_name = ptr_operand->getName().str();
-            name_type_map.insert(make_pair(ptr_operand_name, val_operand_type));
+            // This is the problem
+            auto test = name_type_map.find(val_operand->getName().str());
+            if (test != name_type_map.end()) {
+              llvm::Type *val_operand_type = name_type_map.at(val_operand->getName().str());
+              std::string ptr_operand_name = ptr_operand->getName().str();
+              name_type_map.insert(make_pair(ptr_operand_name, val_operand_type));
+            }
           }
 
         }
@@ -284,4 +288,3 @@ int main(int argc, char **argv)
   }
   return 0;
 }
-
