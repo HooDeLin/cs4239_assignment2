@@ -37,7 +37,11 @@ std::string getOperandFromLoad(std::string instruction) {
   while(std::getline(ss, item, '=')) {
     tokens.push_back(item);
   }
-  return tokens.at(0);
+  std::string token = tokens.at(0);
+  token.erase(token.begin(), std::find_if(token.begin(), token.end(), [](int ch) {
+        return !std::isspace(ch);
+  }));
+  return token;
 }
 
 /*
