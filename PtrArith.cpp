@@ -187,12 +187,12 @@ static void mapRegsToType(const char *name, Module *M) {
         // Check if I is GetElementPtrInst
         if (GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(&I)) {
           // errs() << "==================" << "\n";
-          I.dump();
+          // I.dump();
           // errs() << "==================" << "\n";
           Type *ptr_operand_type = GEPI->getPointerOperandType();
           // errs() << "Pointer Operand Type of GEP: ";
           // ptr_operand_type->dump();
-          errs() << "\n";
+          // errs() << "\n";
           name = GEPI->getName().str();
           // errs() << "Name of lvalue: " << name << "\n";
           std::string ptr_operand = getPointerOperandFromGepInst(GEPI);
@@ -264,42 +264,43 @@ static void mapRegsToType(const char *name, Module *M) {
           if (ConstantExpr *expr = dyn_cast<ConstantExpr>(val_operand)) { //handle inner instructions
             if (GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(expr->getAsInstruction())) {
                 if (GEPI->getPointerOperandType()->getArrayElementType()->isArrayTy()) {
+                  name_type_map.erase(ptr_operand->getName().str());
                   name_type_map.insert(make_pair(ptr_operand->getName().str(), GEPI->getPointerOperandType()));
                 }
             }
-          }
-          if (val_operand->getName().str().compare("")) {
-            reg_relation_map.insert(make_pair(ptr_operand->getName().str(), val_operand->getName().str()));
-          }
-          std::string val_operand_name = val_operand->getName().str();
-          if (validateName(val_operand_name)) {
-            auto test = name_type_map.find(val_operand->getName().str());
-            if (test != name_type_map.end()) {
-              llvm::Type *val_operand_type = name_type_map.at(val_operand->getName().str());
-              std::string ptr_operand_name = ptr_operand->getName().str();
-              name_type_map.insert(make_pair(ptr_operand_name, val_operand_type));
-            } else {
-              // errs() << val_operand_name << " is not in the map" << "\n";
+          } else {
+            if (val_operand->getName().str().compare("")) {
+              reg_relation_map.insert(make_pair(ptr_operand->getName().str(), val_operand->getName().str()));
+            }
+            std::string val_operand_name = val_operand->getName().str();
+            if (validateName(val_operand_name)) {
+              auto test = name_type_map.find(val_operand->getName().str());
+              if (test != name_type_map.end()) {
+                llvm::Type *val_operand_type = name_type_map.at(val_operand->getName().str());
+                std::string ptr_operand_name = ptr_operand->getName().str();
+                name_type_map.insert(make_pair(ptr_operand_name, val_operand_type));
+              } else {
+                // errs() << val_operand_name << " is not in the map" << "\n";
+              }
             }
           }
-
         }
       }
     }
   }
   // Print the relation
-  errs() << "===== Registry relationships =====\n";
-  for (auto &x : reg_relation_map) {
-    errs() << x.first << " is derived from: " << x.second << "\n";
-    errs() << "\n";
-  }
+  // errs() << "===== Registry relationships =====\n";
+  // for (auto &x : reg_relation_map) {
+  //   errs() << x.first << " is derived from: " << x.second << "\n";
+  //   errs() << "\n";
+  // }
   // Print the map
-  errs() << "===== Types of the names =====\n";
-  for (auto &x : name_type_map) {
-    errs() << x.first << " has type: ";
-    x.second->dump();
-    errs() << "\n";
-  }
+  // errs() << "===== Types of the names =====\n";
+  // for (auto &x : name_type_map) {
+  //   errs() << x.first << " has type: ";
+  //   x.second->dump();
+  //   errs() << "\n";
+  // }
 }
 
 /*
