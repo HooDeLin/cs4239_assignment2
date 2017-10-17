@@ -13,6 +13,7 @@
 #include <string>
 #include <sstream>
 #include <istream>
+#include "llvm/DebugInfo.h"
 #include "llvm/Support/Debug.h"
 
 #include <cstdio>
@@ -208,7 +209,17 @@ static void mapRegsToType(const char *name, Module *M) {
               current = reg_relation_map.at(current);
             }
             if (array_reg.find(current) == array_reg.end()) {
-              errs() << "Line " << GEPI->getDebugLoc().getLine() << ": Possible pointer arithmetic on non-array objects\n";
+              if (MDNode *n = GEPI->getMetadata("dbg")) {
+                DILocation loc(n);
+                unsigned line = loc.getLineNumber();
+                StringRef file = loc.getFilename();
+                StringRef dir = loc.getDirectory();
+                errs() << "Line " << line << " of " << dir.str() << "/"
+                             << file.str() << ": Possible pointer arithmetic on non-array objects\n";
+              } else {
+                errs() << "Write into string literal in function "
+                             << F.getName().str() << "\n";
+              }
             }
           }
           reg_relation_map.insert(make_pair(name, ptr_operand));
