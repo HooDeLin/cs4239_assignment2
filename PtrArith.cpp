@@ -111,7 +111,6 @@ std::string getPointerOperandFromGepInst(GetElementPtrInst *GEPI) {
  */
 static void mapRegsToType(const char *name, Module *M) {
   map<std::string, Type *> name_type_map;
-  set<std::string> array_reg;
   map<std::string, std::string> reg_relation_map;
 
   // `auto` keyword in C++11 means automatic type inference
@@ -183,21 +182,17 @@ static void mapRegsToType(const char *name, Module *M) {
           // errs() << "\n";
           // Insert into map
           name_type_map.insert(make_pair(name, ptr_type));
-          // Insert to set if this is an array;
-          if (ptr_type->getArrayElementType()->isArrayTy()) {
-            array_reg.insert(name);
-          }
         }
 
         // Check if I is GetElementPtrInst
         if (GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(&I)) {
           // errs() << "==================" << "\n";
-          // I.dump();
+          I.dump();
           // errs() << "==================" << "\n";
           Type *ptr_operand_type = GEPI->getPointerOperandType();
           // errs() << "Pointer Operand Type of GEP: ";
           // ptr_operand_type->dump();
-          // errs() << "\n";
+          errs() << "\n";
           name = GEPI->getName().str();
           // errs() << "Name of lvalue: " << name << "\n";
           std::string ptr_operand = getPointerOperandFromGepInst(GEPI);
@@ -205,20 +200,23 @@ static void mapRegsToType(const char *name, Module *M) {
           if (!GEPI->hasAllZeroIndices() && !name.substr(0,10).compare("incdec.ptr")) {
             // Check if this is from an array (ptr_operand)
             std::string current = ptr_operand;
-            while(reg_relation_map.find(current) != reg_relation_map.end()) {
+            if (reg_relation_map.find(current) != reg_relation_map.end()) {
               current = reg_relation_map.at(current);
+              if (reg_relation_map.find(current) != reg_relation_map.end()) {
+                current = reg_relation_map.at(current);
+              }
             }
-            if (array_reg.find(current) == array_reg.end()) {
+            if (!name_type_map.at(current)->getArrayElementType()->isArrayTy()) {
               if (MDNode *n = GEPI->getMetadata("dbg")) {
                 DILocation loc(n);
                 unsigned line = loc.getLineNumber();
                 StringRef file = loc.getFilename();
                 StringRef dir = loc.getDirectory();
                 errs() << "Line " << line << " of " << dir.str() << "/"
-                             << file.str() << ": Possible pointer arithmetic on non-array objects\n";
+                       << file.str() << ": Possible pointer arithmetic on non-array objects\n";
               } else {
                 errs() << "Write into string literal in function "
-                             << F.getName().str() << "\n";
+                       << F.getName().str() << "\n";
               }
             }
           }
@@ -266,7 +264,7 @@ static void mapRegsToType(const char *name, Module *M) {
           if (ConstantExpr *expr = dyn_cast<ConstantExpr>(val_operand)) { //handle inner instructions
             if (GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(expr->getAsInstruction())) {
                 if (GEPI->getPointerOperandType()->getArrayElementType()->isArrayTy()) {
-                  array_reg.insert(ptr_operand->getName().str());
+                  name_type_map.insert(make_pair(ptr_operand->getName().str(), GEPI->getPointerOperandType()));
                 }
             }
           }
@@ -289,24 +287,19 @@ static void mapRegsToType(const char *name, Module *M) {
       }
     }
   }
-  // Print the set
-  // errs() << "===== Array registers =====\n";
-  // for (std::set<std::string>::iterator it=array_reg.begin(); it!=array_reg.end(); ++it)
-	//     errs() << ' ' << *it;
-	// errs()<<"\n";
   // Print the relation
-  // errs() << "===== Registry relationships =====\n";
-  // for (auto &x : reg_relation_map) {
-  //   errs() << x.first << " is derived from: " << x.second << "\n";
-  //   errs() << "\n";
-  // }
+  errs() << "===== Registry relationships =====\n";
+  for (auto &x : reg_relation_map) {
+    errs() << x.first << " is derived from: " << x.second << "\n";
+    errs() << "\n";
+  }
   // Print the map
-  // errs() << "===== Types of the names =====\n";
-  // for (auto &x : name_type_map) {
-  //   errs() << x.first << " has type: ";
-  //   x.second->dump();
-  //   errs() << "\n";
-  // }
+  errs() << "===== Types of the names =====\n";
+  for (auto &x : name_type_map) {
+    errs() << x.first << " has type: ";
+    x.second->dump();
+    errs() << "\n";
+  }
 }
 
 /*
