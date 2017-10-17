@@ -198,8 +198,7 @@ static void mapRegsToType(const char *name, Module *M) {
           // errs() << "Name of lvalue: " << name << "\n";
           std::string ptr_operand = getPointerOperandFromGepInst(GEPI);
           name_type_map.insert(make_pair(name, ptr_operand_type));
-
-          if (!GEPI->hasAllZeroIndices() && !name.compare("incdec.ptr")) {
+          if (!GEPI->hasAllZeroIndices() && !name.substr(0,10).compare("incdec.ptr")) {
             // Check if this is from an array (ptr_operand)
             std::string current = ptr_operand;
             while(reg_relation_map.find(current) != reg_relation_map.end()) {
