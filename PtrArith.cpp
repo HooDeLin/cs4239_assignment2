@@ -6,6 +6,9 @@
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/SourceMgr.h"
 
+#include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/Constants.h"
+
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -239,7 +242,8 @@ static void mapRegsToType(const char *name, Module *M) {
         // Check if I is store
         if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
           // errs() << "==================" << "\n";
-          // I.dump();
+          I.dump();
+          errs() << "\n";
           // errs() << "==================" << "\n";
           // Extract the operands
           Value *val_operand = SI->getValueOperand();
@@ -248,6 +252,13 @@ static void mapRegsToType(const char *name, Module *M) {
           // errs() << "Pointer Operand of Store: " << ptr_operand->getName().str() << "\n";
 
           // Add PointerOperand to name_type_map with type of ValueOperand
+          if (ConstantExpr *expr = dyn_cast<ConstantExpr>(val_operand)) { //handle inner instructions
+            if (GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(expr->getAsInstruction())) {
+                if (GEPI->getPointerOperandType()->getArrayElementType()->isArrayTy()) {
+                  array_reg.insert(ptr_operand->getName().str());
+                }
+            }
+          }
           if (val_operand->getName().str().compare("")) {
             reg_relation_map.insert(make_pair(ptr_operand->getName().str(), val_operand->getName().str()));
           }
@@ -273,11 +284,11 @@ static void mapRegsToType(const char *name, Module *M) {
 	//     errs() << ' ' << *it;
 	// errs()<<"\n";
   // Print the relation
-  // errs() << "===== Registry relationships =====\n";
-  // for (auto &x : reg_relation_map) {
-  //   errs() << x.first << " is derived from: " << x.second << "\n";
-  //   errs() << "\n";
-  // }
+  errs() << "===== Registry relationships =====\n";
+  for (auto &x : reg_relation_map) {
+    errs() << x.first << " is derived from: " << x.second << "\n";
+    errs() << "\n";
+  }
   // Print the map
   // errs() << "===== Types of the names =====\n";
   // for (auto &x : name_type_map) {
