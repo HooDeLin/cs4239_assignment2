@@ -271,6 +271,9 @@ static void mapRegsToType(const char *name, Module *M) {
           } else {
             if (val_operand->getName().str().compare("")) {
               reg_relation_map.insert(make_pair(ptr_operand->getName().str(), val_operand->getName().str()));
+              if (name_type_map.find(val_operand->getName().str()) == name_type_map.end()) {
+                name_type_map.insert(make_pair(val_operand->getName().str(), val_operand->getType()));
+              }
             }
             std::string val_operand_name = val_operand->getName().str();
             if (validateName(val_operand_name)) {
