@@ -242,8 +242,8 @@ static void mapRegsToType(const char *name, Module *M) {
         // Check if I is store
         if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
           // errs() << "==================" << "\n";
-          I.dump();
-          errs() << "\n";
+          // I.dump();
+          // errs() << "\n";
           // errs() << "==================" << "\n";
           // Extract the operands
           Value *val_operand = SI->getValueOperand();
@@ -284,11 +284,11 @@ static void mapRegsToType(const char *name, Module *M) {
 	//     errs() << ' ' << *it;
 	// errs()<<"\n";
   // Print the relation
-  errs() << "===== Registry relationships =====\n";
-  for (auto &x : reg_relation_map) {
-    errs() << x.first << " is derived from: " << x.second << "\n";
-    errs() << "\n";
-  }
+  // errs() << "===== Registry relationships =====\n";
+  // for (auto &x : reg_relation_map) {
+  //   errs() << x.first << " is derived from: " << x.second << "\n";
+  //   errs() << "\n";
+  // }
   // Print the map
   // errs() << "===== Types of the names =====\n";
   // for (auto &x : name_type_map) {
