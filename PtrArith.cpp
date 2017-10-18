@@ -8,13 +8,7 @@
 
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/ADT/Twine.h"
-// #include "llvm/IR/DerivedUser.h"
-#include "llvm/IR/Operator.h"
-#include <iostream>
-#include <string>
 #include <sstream>
-#include <istream>
 #include "llvm/DebugInfo.h"
 #include "llvm/Support/Debug.h"
 
@@ -25,93 +19,81 @@
 using namespace llvm;
 using namespace std;
 
-int validateName(std::string name) {
-  // Checks if the name is prefixed with %
-  // Used to filter out non-virtual-register names, which can happen in
-  // instructions like `store i32 0, ...`
-  // TODO: this function might be buggy since I'm trying to filter out names
-  // that don't have %, and for now the only ones that don't seem to have % in
-  // them are '0', so name[0] won't even work because it's like a null string?
-  return name.length() > 0;
-  //return name[0] == '%';
-}
-
-std::string trimWhitespace(std::string input) {
-  std::string output = input;
-  output.erase(output.begin(), std::find_if(output.begin(), output.end(), [](int ch) {
-        return !std::isspace(ch);
+string trimWhitespace(string input) {
+  string output = input;
+  output.erase(output.begin(), find_if(output.begin(), output.end(), [](int ch) {
+        return !isspace(ch);
   }));
-  output.erase(std::find_if(output.rbegin(), output.rend(), [](int ch) {
-        return !std::isspace(ch);
+  output.erase(find_if(output.rbegin(), output.rend(), [](int ch) {
+        return !isspace(ch);
     }).base(), output.end());
   return output;
 }
 
-std::string getOperandFromInstStringManually(std::string instruction) {
-  std::stringstream ss(instruction);
-  std::string item;
-  vector<std::string> tokens;
-  while(std::getline(ss, item, '=')) {
+string getOperandFromInstStringManually(string instruction) {
+  stringstream ss(instruction);
+  string item;
+  vector<string> tokens;
+  while(getline(ss, item, '=')) {
     tokens.push_back(item);
   }
   return trimWhitespace(tokens.at(0)).erase(0,1);
 }
 
-/* Functions to get std::string representation from LLVM classes */
+/* Functions to get string representation from LLVM classes */
 
-std::string getStringFromValuePtr(Value * val) {
+string getStringFromValuePtr(Value * val) {
   // Returns the virtual register name from a Value *
   if (val->hasName()) {
     return val->getName().str();
   }
-  std::string instruction, val_str;
+  string instruction, val_str;
   raw_string_ostream rso(instruction);
   val->print(rso);
   return getOperandFromInstStringManually(instruction);
 }
 
-std::string getStringFromTypePtr(Type *type) {
-  std::string type_string;
+string getStringFromTypePtr(Type *type) {
+  string type_string;
   raw_string_ostream rso(type_string);
   type->print(rso);
   return rso.str();
 }
 
-std::string getStringFromInstPtr(Instruction *inst) {
-  std::string instruction;
+string getStringFromInstPtr(Instruction *inst) {
+  string instruction;
   raw_string_ostream rso(instruction);
   inst->print(rso);
   return instruction;
 }
 
-/* End of Functions to get std::string representation from LLVM classes */
+/* End of Functions to get string representation from LLVM classes */
 
+/* Functions to get string operands from Instructions */
 
-/* Functions to get std::string operands from Instructions */
-
-std::string getOperandFromInst(Instruction *instruction) {
+string getOperandFromInst(Instruction *instruction) {
   if (instruction->hasName()) {
     return instruction->getName().str();
   }
-  std::string instruction_string = getStringFromInstPtr(instruction);
+  string instruction_string = getStringFromInstPtr(instruction);
   return getOperandFromInstStringManually(instruction_string);
 }
 
-std::string getPointerOperandFromInst(Instruction *instruction, Value *pointerOperand) {
+string getPointerOperandFromInst(Instruction *instruction, Value *pointerOperand) {
   if (pointerOperand->hasName()) {
     return pointerOperand->getName().str();
   } else {
-    std::string type = getStringFromTypePtr(pointerOperand->getType());
-    std::string instruction_string = getStringFromInstPtr(instruction);
+    string type = getStringFromTypePtr(pointerOperand->getType());
+    string instruction_string = getStringFromInstPtr(instruction);
     size_t pos = instruction_string.find(type);
     instruction_string.erase(0, pos + type.length());
     pos = instruction_string.find(',');
-    std::string pointerOperand = trimWhitespace(instruction_string.substr(0, pos));
+    string pointerOperand = trimWhitespace(instruction_string.substr(0, pos));
     return pointerOperand.erase(0,1);
   }
 }
 
-/* End of Functions to get std::string operands from Instructions */
+/* End of Functions to get string operands from Instructions */
 
 /* Helper functions */
 bool isDoingPtrArith(GetElementPtrInst *GEPI) {
@@ -124,13 +106,13 @@ bool isValueNameEmpty(Value * val) { // A value can be %a, %1 or 0
   if (val->hasName()) { // No need for more checks
     return true;
   }
-  std::string instruction, val_str;
+  string instruction, val_str;
   raw_string_ostream rso(instruction);
   val->print(rso);
-  std::stringstream ss(instruction);
-  std::string item;
-  vector<std::string> tokens;
-  while(std::getline(ss, item, '=')) {
+  stringstream ss(instruction);
+  string item;
+  vector<string> tokens;
+  while(getline(ss, item, '=')) {
     tokens.push_back(item);
   }
   return trimWhitespace(tokens.at(0)).at(0) == '%';
@@ -139,7 +121,7 @@ bool isValueNameEmpty(Value * val) { // A value can be %a, %1 or 0
 
 /* Function to print warnings */
 
-void printDetectedAnalysis(GetElementPtrInst *GEPI, std::string functionName) {
+void printDetectedAnalysis(GetElementPtrInst *GEPI, string functionName) {
   if (MDNode *n = GEPI->getMetadata("dbg")) {
     DILocation loc(n);
     unsigned line = loc.getLineNumber();
@@ -157,8 +139,8 @@ void printDetectedAnalysis(GetElementPtrInst *GEPI, std::string functionName) {
 
 /* Main Analyse and Instruction Loop */
 static void analyse(const char *name, Module *M) {
-  map<std::string, Type *> name_type_map;
-  map<std::string, std::string> reg_relation_map;
+  map<string, Type *> name_type_map;
+  map<string, string> reg_relation_map;
 
   for (auto &F : *M) {
     // To catch types of parameters
@@ -166,10 +148,8 @@ static void analyse(const char *name, Module *M) {
     // would be here too, not just the source code declared functions
 
     for (auto &A : F.getArgumentList()) {
-      std::string arg_name = A.getName().str();
-      //errs() << "arg name: " << arg_name << "\n";
-      if (validateName(arg_name))
-        name_type_map.insert(make_pair(A.getName().str(), A.getType()));
+      if (A.hasName())
+        name_type_map.insert(make_pair(getStringFromValuePtr(&A), A.getType()));
     }
 
     for (auto &BB : F) {
@@ -181,16 +161,16 @@ static void analyse(const char *name, Module *M) {
         // Variables
         Value *val_ptr = nullptr;
         PointerType *ptr_type = nullptr;
-        std::string name = "";
+        string name = "";
 
-        if (isa<llvm::BinaryOperator>(&I)) {
+        if (isa<BinaryOperator>(&I)) {
           Value *op1 = I.getOperand(0);
           Value *op2 = I.getOperand(1);
           Type *op1_type = op1->getType();
 
           // Get the string representation of the virtual register
-          std::string op1_str = getStringFromValuePtr(op1);
-          std::string op2_str = getStringFromValuePtr(op2);
+          string op1_str = getStringFromValuePtr(op1);
+          string op2_str = getStringFromValuePtr(op2);
 
           // Extract the lvalue's name
           name = getOperandFromInst(&I);
@@ -224,14 +204,14 @@ static void analyse(const char *name, Module *M) {
           // errs() << "\n";
           name = getOperandFromInst(GEPI);
           // errs() << "Name of lvalue: " << name << "\n";
-          std::string ptr_operand = getPointerOperandFromInst(GEPI, GEPI->getPointerOperand());
+          string ptr_operand = getPointerOperandFromInst(GEPI, GEPI->getPointerOperand());
           name_type_map.insert(make_pair(name, ptr_operand_type));
           reg_relation_map.insert(make_pair(name, ptr_operand));
 
           // Analyse and report non-array pointer arithmetic
           if (isDoingPtrArith(GEPI)) {
             // Backtrack at most 2 levels to check if it is an array
-            std::string current = ptr_operand;
+            string current = ptr_operand;
             if (reg_relation_map.find(current) != reg_relation_map.end()) {
               current = reg_relation_map.at(current);
               if (reg_relation_map.find(current) != reg_relation_map.end()) {
@@ -253,7 +233,7 @@ static void analyse(const char *name, Module *M) {
 
           // Extract the lvalue's name
           name = getOperandFromInst(LI);
-          std::string pointerOperand = getPointerOperandFromInst(LI, LI->getPointerOperand());
+          string pointerOperand = getPointerOperandFromInst(LI, LI->getPointerOperand());
           reg_relation_map.insert(make_pair(name, pointerOperand));
           name_type_map.insert(make_pair(name, ptr_operand_type));
         }
@@ -263,8 +243,8 @@ static void analyse(const char *name, Module *M) {
           // Extract the operands
           Value *val_operand = SI->getValueOperand();
           Value *ptr_operand = SI->getPointerOperand();
-          std::string val_operand_string = getStringFromValuePtr(val_operand);
-          std::string ptr_operand_string = getStringFromValuePtr(ptr_operand);
+          string val_operand_string = getStringFromValuePtr(val_operand);
+          string ptr_operand_string = getStringFromValuePtr(ptr_operand);
           // errs() << "Value Operand of Store: " << val_operand->getName().str() << "\n";
           // errs() << "Pointer Operand of Store: " << ptr_operand->getName().str() << "\n";
 
