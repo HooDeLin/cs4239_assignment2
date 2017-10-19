@@ -5,13 +5,12 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/SourceMgr.h"
-
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Constants.h"
-#include <sstream>
 #include "llvm/DebugInfo.h"
 #include "llvm/Support/Debug.h"
 
+#include <sstream>
 #include <cstdio>
 #include <map>
 #include <set>
@@ -19,7 +18,26 @@
 using namespace llvm;
 using namespace std;
 
+/*
+ * Function prototypes
+ */
+string trimWhitespace(string);
+bool isDoingPtrArith(GetElementPtrInst *);
+bool isValueNameEmpty(Value *);
+string getStringFromValuePtr(Value *);
+string getStringFromTypePtr(Type *);
+string getStringFromInstPtr(Instruction *);
+string getOperandFromInst(Instruction *);
+string getPointerOperandFromInst(Instruction *, Value *);
+string getOperandFromInstStringManually(string) ;
+void printDetectedAnalysis(GetElementPtrInst *, string);
+
+/*
+ * Helper functions
+ */
+
 string trimWhitespace(string input) {
+  // Remove whitespaces surrounding the input
   string output = input;
   output.erase(output.begin(), find_if(output.begin(), output.end(), [](int ch) {
         return !isspace(ch);
@@ -30,19 +48,39 @@ string trimWhitespace(string input) {
   return output;
 }
 
-string getOperandFromInstStringManually(string instruction) {
+bool isDoingPtrArith(GetElementPtrInst *GEPI) {
+  // We can know if GetElementPtrInst is doing pointer arithmetic if some
+  // indices are non zero and the register value looks like
+  //%incdec.ptr, %incdec.ptr1, %incdec.ptr2 ...
+  return !GEPI->hasAllZeroIndices() &&
+         !getOperandFromInst(GEPI)
+         .substr(0,10)
+         .compare("incdec.ptr");
+}
+
+bool isValueNameEmpty(Value *val) {
+  // A value can be %a, %1 or 0
+  if (val->hasName()) {
+    // No need for more checks
+    return true;
+  }
+  string instruction, val_str;
+  raw_string_ostream rso(instruction);
+  val->print(rso);
   stringstream ss(instruction);
   string item;
   vector<string> tokens;
   while(getline(ss, item, '=')) {
     tokens.push_back(item);
   }
-  return trimWhitespace(tokens.at(0)).erase(0,1);
+  return trimWhitespace(tokens.at(0)).at(0) == '%';
 }
 
-/* Functions to get string representation from LLVM classes */
+/*
+ * Functions to get std::string representation from LLVM classes
+ */
 
-string getStringFromValuePtr(Value * val) {
+string getStringFromValuePtr(Value *val) {
   // Returns the virtual register name from a Value *
   if (val->hasName()) {
     return val->getName().str();
@@ -67,9 +105,9 @@ string getStringFromInstPtr(Instruction *inst) {
   return instruction;
 }
 
-/* End of Functions to get string representation from LLVM classes */
-
-/* Functions to get string operands from Instructions */
+/*
+ * Functions to get std::string operands from llvm::Instructions
+ */
 
 string getOperandFromInst(Instruction *instruction) {
   if (instruction->hasName()) {
@@ -93,34 +131,19 @@ string getPointerOperandFromInst(Instruction *instruction, Value *pointerOperand
   }
 }
 
-/* End of Functions to get string operands from Instructions */
-
-/* Helper functions */
-bool isDoingPtrArith(GetElementPtrInst *GEPI) {
-  // We can know if GetElementPtrInst is doing pointer arithmetic if some indices are non zero
-  // and the register value looks like %incdec.ptr, %incdec.ptr1, %incdec.ptr2 ...
-  return !GEPI->hasAllZeroIndices() && !getOperandFromInst(GEPI).substr(0,10).compare("incdec.ptr");
-}
-
-bool isValueNameEmpty(Value * val) { // A value can be %a, %1 or 0
-  if (val->hasName()) { // No need for more checks
-    return true;
-  }
-  string instruction, val_str;
-  raw_string_ostream rso(instruction);
-  val->print(rso);
+string getOperandFromInstStringManually(string instruction) {
   stringstream ss(instruction);
   string item;
   vector<string> tokens;
   while(getline(ss, item, '=')) {
     tokens.push_back(item);
   }
-  return trimWhitespace(tokens.at(0)).at(0) == '%';
+  return trimWhitespace(tokens.at(0)).erase(0,1);
 }
-/* End of Helper functions */
 
-/* Function to print warnings */
-
+/*
+ * Function to print warnings
+ */
 void printDetectedAnalysis(GetElementPtrInst *GEPI, string functionName) {
   if (MDNode *n = GEPI->getMetadata("dbg")) {
     DILocation loc(n);
@@ -135,9 +158,9 @@ void printDetectedAnalysis(GetElementPtrInst *GEPI, string functionName) {
   }
 }
 
-/* End of Function to print warnings */
-
-/* Main Analyse and Instruction Loop */
+/*
+ * Main analysis and Instruction Loop
+ */
 static void analyse(const char *name, Module *M) {
   map<string, Type *> name_type_map;
   map<string, string> reg_relation_map;
@@ -299,7 +322,7 @@ int main(int argc, char **argv)
       fprintf(stderr, "ERROR: failed to load %s\n", argv[i]);
       continue;
     }
-    // our analysis function
+    // Run our analysis function
     analyse(argv[i], M);
   }
   return 0;
