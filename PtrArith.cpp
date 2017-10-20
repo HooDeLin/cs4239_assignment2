@@ -152,7 +152,7 @@ void printDetectedAnalysis(GetElementPtrInst *GEPI, string functionName) {
     errs() << "Line " << line << " of " << dir.str() << "/"
            << file.str() << ": Possible pointer arithmetic on non-array objects\n";
   } else {
-    errs() << "Write into string literal in function "
+    errs() << "Possible pointer arithmetic on non-array objects in function "
            << functionName << "\n";
   }
 }
