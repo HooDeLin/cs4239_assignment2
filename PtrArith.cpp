@@ -53,9 +53,8 @@ bool isDoingPtrArith(GetElementPtrInst *GEPI) {
   // indices are non zero and the register value looks like
   //%incdec.ptr, %incdec.ptr1, %incdec.ptr2 ...
   return !GEPI->hasAllZeroIndices() &&
-         !getOperandFromInst(GEPI)
-         .substr(0,10)
-         .compare("incdec.ptr");
+         getOperandFromInst(GEPI)
+         .find(".ptr") != string::npos;
 }
 
 bool isValueNameEmpty(Value *val) {
