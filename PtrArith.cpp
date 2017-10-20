@@ -51,7 +51,7 @@ string trimWhitespace(string input) {
 bool isDoingPtrArith(GetElementPtrInst *GEPI) {
   // We can know if GetElementPtrInst is doing pointer arithmetic if some
   // indices are non zero and the register value looks like
-  //%incdec.ptr, %incdec.ptr1, %incdec.ptr2 ...
+  //%<some name>.ptr
   return !GEPI->hasAllZeroIndices() &&
          getOperandFromInst(GEPI)
          .find(".ptr") != string::npos;
