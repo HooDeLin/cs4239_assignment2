@@ -11,4 +11,5 @@ void func() {
 	int *b;
 	b = &my_numbers.arr_num[3];
 	b ++;
+	b ++;
 }

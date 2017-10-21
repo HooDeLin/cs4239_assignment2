@@ -21,7 +21,10 @@ entry:
   %0 = load i32** %b1, align 8, !dbg !28
   %incdec.ptr = getelementptr inbounds i32* %0, i32 1, !dbg !28
   store i32* %incdec.ptr, i32** %b1, align 8, !dbg !28
-  ret void, !dbg !29
+  %1 = load i32** %b1, align 8, !dbg !29
+  %incdec.ptr2 = getelementptr inbounds i32* %1, i32 1, !dbg !29
+  store i32* %incdec.ptr2, i32** %b1, align 8, !dbg !29
+  ret void, !dbg !30
 }
 
 ; Function Attrs: nounwind readnone
@@ -64,3 +67,4 @@ attributes #1 = { nounwind readnone }
 !27 = metadata !{i32 12, i32 0, metadata !4, null}
 !28 = metadata !{i32 13, i32 0, metadata !4, null}
 !29 = metadata !{i32 14, i32 0, metadata !4, null}
+!30 = metadata !{i32 15, i32 0, metadata !4, null}
