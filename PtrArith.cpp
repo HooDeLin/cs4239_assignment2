@@ -83,9 +83,9 @@ string getParent(string current, map<string, string> reg_relation_map, int level
    string parent = reg_relation_map.at(current);
    strtol(parent.c_str(), &p, 10) ;
    if (*p == 0) {
-     return getParent(parent, reg_relation_map, level - 1);
+     return getParent(parent, reg_relation_map, level);
    } else {
-     return getParent(reg_relation_map.at(current), reg_relation_map, 0);
+     return getParent(reg_relation_map.at(current), reg_relation_map, level - 1);
    }
   } else {
     return getParent(current, reg_relation_map, 0);
@@ -261,8 +261,9 @@ static void analyse(const char *name, Module *M) {
             // One for incdecptr to get the pointer we operate on
             // Next, get the pointer that this is derived from
             // Next, check if the pointer that this is derived from is an array
-            string current = ptr_operand;
+            string current = name;
             current = getParent(current, reg_relation_map, 3);
+
             if (!name_type_map.at(current)->getArrayElementType()->isArrayTy()) {
               printDetectedAnalysis(GEPI, F.getName().str());
             }
@@ -308,10 +309,8 @@ static void analyse(const char *name, Module *M) {
             }
           } else if (isValueNameEmpty(val_operand)) {
             reg_relation_map.erase(ptr_operand_string);
-            name_type_map.erase(val_operand_string);
             name_type_map.erase(ptr_operand_string);
             reg_relation_map.insert(make_pair(ptr_operand_string, val_operand_string));
-            name_type_map.insert(make_pair(val_operand_string, val_operand->getType()));
             name_type_map.insert(make_pair(ptr_operand_string, val_operand->getType()));
           }
         }
