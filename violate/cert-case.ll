@@ -1,4 +1,4 @@
-; ModuleID = 'test01.c'
+; ModuleID = 'cert-case.c'
 target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
@@ -76,12 +76,12 @@ attributes #2 = { nounwind }
 !llvm.module.flags = !{!20, !21}
 !llvm.ident = !{!22}
 
-!0 = metadata !{i32 786449, metadata !1, i32 12, metadata !"clang version 3.4.2 (tags/RELEASE_34/dot2-final)", i1 false, metadata !"", i32 0, metadata !2, metadata !2, metadata !3, metadata !2, metadata !2, metadata !""} ; [ DW_TAG_compile_unit ] [/media/sf_shared_cs4239/cs4239_assignment2/test01.c] [DW_LANG_C99]
-!1 = metadata !{metadata !"test01.c", metadata !"/media/sf_shared_cs4239/cs4239_assignment2"}
+!0 = metadata !{i32 786449, metadata !1, i32 12, metadata !"clang version 3.4.2 (tags/RELEASE_34/dot2-final)", i1 false, metadata !"", i32 0, metadata !2, metadata !2, metadata !3, metadata !2, metadata !2, metadata !""} ; [ DW_TAG_compile_unit ] [/media/sf_shared_cs4239/cs4239_assignment2/cert-case.c] [DW_LANG_C99]
+!1 = metadata !{metadata !"cert-case.c", metadata !"/media/sf_shared_cs4239/cs4239_assignment2"}
 !2 = metadata !{i32 0}
 !3 = metadata !{metadata !4, metadata !17}
 !4 = metadata !{i32 786478, metadata !1, metadata !5, metadata !"sum_numbers", metadata !"sum_numbers", metadata !"", i32 7, metadata !6, i1 false, i1 true, i32 0, i32 0, null, i32 256, i1 false, i32 (%struct.numbers*)* @sum_numbers, null, null, metadata !2, i32 7} ; [ DW_TAG_subprogram ] [line 7] [def] [sum_numbers]
-!5 = metadata !{i32 786473, metadata !1}          ; [ DW_TAG_file_type ] [/media/sf_shared_cs4239/cs4239_assignment2/test01.c]
+!5 = metadata !{i32 786473, metadata !1}          ; [ DW_TAG_file_type ] [/media/sf_shared_cs4239/cs4239_assignment2/cert-case.c]
 !6 = metadata !{i32 786453, i32 0, null, metadata !"", i32 0, i64 0, i64 0, i64 0, i32 0, null, metadata !7, i32 0, null, null, null} ; [ DW_TAG_subroutine_type ] [line 0, size 0, align 0, offset 0] [from ]
 !7 = metadata !{metadata !8, metadata !9}
 !8 = metadata !{i32 786468, null, null, metadata !"int", i32 0, i64 32, i64 32, i64 0, i32 0, i32 5} ; [ DW_TAG_base_type ] [int] [line 0, size 32, align 32, offset 0, enc DW_ATE_signed]
@@ -108,9 +108,9 @@ attributes #2 = { nounwind }
 !29 = metadata !{i32 786470, null, null, metadata !"", i32 0, i64 0, i64 0, i64 0, i32 0, metadata !14} ; [ DW_TAG_const_type ] [line 0, size 0, align 0, offset 0] [from short]
 !30 = metadata !{i32 9, i32 0, metadata !4, null}
 !31 = metadata !{i32 12, i32 0, metadata !32, null}
-!32 = metadata !{i32 786443, metadata !1, metadata !4, i32 12, i32 0, i32 0} ; [ DW_TAG_lexical_block ] [/media/sf_shared_cs4239/cs4239_assignment2/test01.c]
+!32 = metadata !{i32 786443, metadata !1, metadata !4, i32 12, i32 0, i32 0} ; [ DW_TAG_lexical_block ] [/media/sf_shared_cs4239/cs4239_assignment2/cert-case.c]
 !33 = metadata !{i32 15, i32 0, metadata !34, null}
-!34 = metadata !{i32 786443, metadata !1, metadata !32, i32 14, i32 0, i32 1} ; [ DW_TAG_lexical_block ] [/media/sf_shared_cs4239/cs4239_assignment2/test01.c]
+!34 = metadata !{i32 786443, metadata !1, metadata !32, i32 14, i32 0, i32 1} ; [ DW_TAG_lexical_block ] [/media/sf_shared_cs4239/cs4239_assignment2/cert-case.c]
 !35 = metadata !{i32 16, i32 0, metadata !34, null}
 !36 = metadata !{i32 14, i32 0, metadata !32, null}
 !37 = metadata !{i32 18, i32 0, metadata !4, null}
