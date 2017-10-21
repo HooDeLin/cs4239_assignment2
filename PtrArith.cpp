@@ -31,7 +31,7 @@ string getOperandFromInst(Instruction *);
 string getPointerOperandFromInst(Instruction *, Value *);
 string getOperandFromInstStringManually(string) ;
 void printDetectedAnalysis(GetElementPtrInst *, string);
-
+string getObjectThatIsBeingDereferenced(string, Type*, map<string, string>, map<string, string>);
 /*
  * Helper functions
  */
@@ -90,6 +90,15 @@ string getParent(string current, map<string, string> reg_relation_map, int level
   } else {
     return getParent(current, reg_relation_map, 0);
   }
+}
+
+string getObjectThatIsBeingDereferenced(string current, Type *ptr_operand_type, map<string, string>reg_relation_map, map<string, Type*>name_type_map) {
+  string direct_parent = getParent(current, reg_relation_map, 1);
+  string current_type = getStringFromTypePtr(name_type_map.at(getParent(current, reg_relation_map, 1)));
+  string ptr_operand_type_string = getStringFromTypePtr(ptr_operand_type);
+  size_t succ = count(ptr_operand_type_string.begin(), ptr_operand_type_string.end(), '*');
+  size_t pred = count(current_type.begin(), current_type.end(), '*');
+  return getParent(direct_parent, reg_relation_map, (int)pred-succ + 1);
 }
 
 /*
@@ -257,13 +266,17 @@ static void analyse(const char *name, Module *M) {
 
           // Analyse and report non-array pointer arithmetic
           if (isDoingPtrArith(GEPI)) {
-            // Backtrack at most 3 levels to check if it is an array
-            // One for incdecptr to get the pointer we operate on
-            // Next, get the pointer that this is derived from
-            // Next, check if the pointer that this is derived from is an array
-            string current = name;
-            current = getParent(current, reg_relation_map, 3);
-
+            // First we get the direct parent of the register.
+            // We check how it is being dereferenced
+            // Example:
+            // parent type i32***, getelementptr type i32**, that means the dereference is 2 hops away
+            // Then we find the parents that are 2 hops away
+            // In terms of llvm:
+            // %3 = load i32**** %d, align 8, !dbg !28
+            // %4 = load i32*** %3, align 8, !dbg !28
+            // %5 = load i32** %4, align 8, !dbg !28
+            // %add.ptr1 = getelementptr inbounds i32* %5, i64 1
+            string current = getObjectThatIsBeingDereferenced(name, ptr_operand_type, reg_relation_map, name_type_map);
             if (!name_type_map.at(current)->getArrayElementType()->isArrayTy()) {
               printDetectedAnalysis(GEPI, F.getName().str());
             }
@@ -308,10 +321,20 @@ static void analyse(const char *name, Module *M) {
                 }
             }
           } else if (isValueNameEmpty(val_operand)) {
-            reg_relation_map.erase(ptr_operand_string);
-            name_type_map.erase(ptr_operand_string);
-            reg_relation_map.insert(make_pair(ptr_operand_string, val_operand_string));
-            name_type_map.insert(make_pair(ptr_operand_string, val_operand->getType()));
+            if (name_type_map.find(val_operand_string) == name_type_map.end()) {
+              name_type_map.insert(make_pair(val_operand_string, val_operand->getType()));
+            }
+            // Check cycle, we need to prevent cycles
+            string parent = val_operand_string;
+            while(reg_relation_map.find(parent) != reg_relation_map.end() && parent != ptr_operand_string) {
+              parent = reg_relation_map.at(parent);
+            }
+            if (parent != ptr_operand_string) { // Only add new mapping if there is no cycles
+              reg_relation_map.erase(ptr_operand_string);
+              name_type_map.erase(ptr_operand_string);
+              reg_relation_map.insert(make_pair(ptr_operand_string, val_operand_string));
+              name_type_map.insert(make_pair(ptr_operand_string, val_operand->getType()));
+            }
           }
         }
       }
