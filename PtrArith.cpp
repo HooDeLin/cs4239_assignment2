@@ -75,6 +75,23 @@ bool isValueNameEmpty(Value *val) {
   return trimWhitespace(tokens.at(0)).at(0) == '%';
 }
 
+string getParent(string current, map<string, string> reg_relation_map, int level) {
+  if (level == 0) {
+    return current;
+  } else if (reg_relation_map.find(current) != reg_relation_map.end()) {
+   char * p ;
+   string parent = reg_relation_map.at(current);
+   strtol(parent.c_str(), &p, 10) ;
+   if (*p == 0) {
+     return getParent(parent, reg_relation_map, level - 1);
+   } else {
+     return getParent(reg_relation_map.at(current), reg_relation_map, level - 1);
+   }
+  } else {
+    return getParent(current, reg_relation_map, level - 1);
+  }
+}
+
 /*
  * Functions to get std::string representation from LLVM classes
  */
@@ -171,6 +188,7 @@ static void analyse(const char *name, Module *M) {
 
     for (auto &A : F.getArgumentList()) {
       if (A.hasName())
+        name_type_map.erase(getStringFromValuePtr(&A));
         name_type_map.insert(make_pair(getStringFromValuePtr(&A), A.getType()));
     }
 
@@ -198,6 +216,10 @@ static void analyse(const char *name, Module *M) {
           name = getOperandFromInst(&I);
 
           // Type of both operands and result will be that of op1
+          name_type_map.erase(op1_str);
+          name_type_map.erase(op2_str);
+          name_type_map.erase(name);
+          reg_relation_map.erase(name);
           name_type_map.insert(make_pair(op1_str, op1_type));
           name_type_map.insert(make_pair(op2_str, op1_type));
           name_type_map.insert(make_pair(name, op1_type));
@@ -216,6 +238,7 @@ static void analyse(const char *name, Module *M) {
           // errs() << name << " has type: ";
           // ptr_type->dump();
           // errs() << "\n";
+          name_type_map.erase(name); // Shouldn't happen, but just in case
           name_type_map.insert(make_pair(name, ptr_type));
         }
 
@@ -227,6 +250,8 @@ static void analyse(const char *name, Module *M) {
           name = getOperandFromInst(GEPI);
           // errs() << "Name of lvalue: " << name << "\n";
           string ptr_operand = getPointerOperandFromInst(GEPI, GEPI->getPointerOperand());
+          name_type_map.erase(name);
+          reg_relation_map.erase(name);
           name_type_map.insert(make_pair(name, ptr_operand_type));
           reg_relation_map.insert(make_pair(name, ptr_operand));
 
@@ -234,12 +259,7 @@ static void analyse(const char *name, Module *M) {
           if (isDoingPtrArith(GEPI)) {
             // Backtrack at most 2 levels to check if it is an array
             string current = ptr_operand;
-            if (reg_relation_map.find(current) != reg_relation_map.end()) {
-              current = reg_relation_map.at(current);
-              if (reg_relation_map.find(current) != reg_relation_map.end()) {
-                current = reg_relation_map.at(current);
-              }
-            }
+            current = getParent(current, reg_relation_map, 3);
             if (!name_type_map.at(current)->getArrayElementType()->isArrayTy()) {
               printDetectedAnalysis(GEPI, F.getName().str());
             }
@@ -256,6 +276,8 @@ static void analyse(const char *name, Module *M) {
           // Extract the lvalue's name
           name = getOperandFromInst(LI);
           string pointerOperand = getPointerOperandFromInst(LI, LI->getPointerOperand());
+          reg_relation_map.erase(name);
+          name_type_map.erase(name);
           reg_relation_map.insert(make_pair(name, pointerOperand));
           name_type_map.insert(make_pair(name, ptr_operand_type));
         }
@@ -282,6 +304,9 @@ static void analyse(const char *name, Module *M) {
                 }
             }
           } else if (isValueNameEmpty(val_operand)) {
+            reg_relation_map.erase(ptr_operand_string);
+            name_type_map.erase(val_operand_string);
+            name_type_map.erase(ptr_operand_string);
             reg_relation_map.insert(make_pair(ptr_operand_string, val_operand_string));
             name_type_map.insert(make_pair(val_operand_string, val_operand->getType()));
             name_type_map.insert(make_pair(ptr_operand_string, val_operand->getType()));
