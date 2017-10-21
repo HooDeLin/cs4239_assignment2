@@ -85,10 +85,10 @@ string getParent(string current, map<string, string> reg_relation_map, int level
    if (*p == 0) {
      return getParent(parent, reg_relation_map, level - 1);
    } else {
-     return getParent(reg_relation_map.at(current), reg_relation_map, level - 1);
+     return getParent(reg_relation_map.at(current), reg_relation_map, 0);
    }
   } else {
-    return getParent(current, reg_relation_map, level - 1);
+    return getParent(current, reg_relation_map, 0);
   }
 }
 
@@ -257,7 +257,10 @@ static void analyse(const char *name, Module *M) {
 
           // Analyse and report non-array pointer arithmetic
           if (isDoingPtrArith(GEPI)) {
-            // Backtrack at most 2 levels to check if it is an array
+            // Backtrack at most 3 levels to check if it is an array
+            // One for incdecptr to get the pointer we operate on
+            // Next, get the pointer that this is derived from
+            // Next, check if the pointer that this is derived from is an array
             string current = ptr_operand;
             current = getParent(current, reg_relation_map, 3);
             if (!name_type_map.at(current)->getArrayElementType()->isArrayTy()) {
