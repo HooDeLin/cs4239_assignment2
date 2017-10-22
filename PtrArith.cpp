@@ -31,6 +31,7 @@ string getOperandFromInst(Instruction *);
 string getPointerOperandFromInst(Instruction *, Value *);
 string getOperandFromInstStringManually(string) ;
 void printDetectedAnalysis(GetElementPtrInst *, string);
+void printEndAnalysis();
 string getObjectThatIsBeingDereferenced(string, Type*, map<string, string>, map<string, string>);
 /*
  * Helper functions
@@ -75,6 +76,8 @@ bool isValueNameEmpty(Value *val) {
   return trimWhitespace(tokens.at(0)).at(0) == '%';
 }
 
+// getParent gets the named value parent that are n-levels from current parent
+// We do not return unnamed register (%0, %1)
 string getParent(string current, map<string, string> reg_relation_map, int level) {
   if (level == 0) {
     return current;
@@ -82,16 +85,20 @@ string getParent(string current, map<string, string> reg_relation_map, int level
    char * p ;
    string parent = reg_relation_map.at(current);
    strtol(parent.c_str(), &p, 10) ;
-   if (*p == 0) {
+   if (*p == 0) { // This is an unnamed register
+     // Run the function again, without decreasing the level
      return getParent(parent, reg_relation_map, level);
    } else {
      return getParent(reg_relation_map.at(current), reg_relation_map, level - 1);
    }
   } else {
+    // You have no parent
     return getParent(current, reg_relation_map, 0);
   }
 }
 
+// First, we get the parent that the type of its direct parent
+// Then, we use getParent to find the object address that is being used
 string getObjectThatIsBeingDereferenced(string current, Type *ptr_operand_type, map<string, string>reg_relation_map, map<string, Type*>name_type_map) {
   string direct_parent = getParent(current, reg_relation_map, 1);
   string current_type = getStringFromTypePtr(name_type_map.at(getParent(current, reg_relation_map, 1)));
@@ -183,6 +190,10 @@ void printDetectedAnalysis(GetElementPtrInst *GEPI, string functionName) {
   }
 }
 
+void printEndAnalysis() {
+  errs() << "========= End of analysis =========\n";
+}
+
 /*
  * Main analysis and Instruction Loop
  */
@@ -194,7 +205,6 @@ static void analyse(const char *name, Module *M) {
     // To catch types of parameters
     // Might include values we don't need, since LLVM auto-generated functions
     // would be here too, not just the source code declared functions
-
     for (auto &A : F.getArgumentList()) {
       if (A.hasName())
         name_type_map.erase(getStringFromValuePtr(&A));
@@ -203,11 +213,6 @@ static void analyse(const char *name, Module *M) {
 
     for (auto &BB : F) {
       for (auto &I : BB) {
-        // errs() << "==================" << "\n";
-        // I.dump();
-        // errs() << "\n";
-        // errs() << "==================" << "\n";
-        // Variables
         Value *val_ptr = nullptr;
         PointerType *ptr_type = nullptr;
         string name = "";
@@ -220,8 +225,6 @@ static void analyse(const char *name, Module *M) {
           // Get the string representation of the virtual register
           string op1_str = getStringFromValuePtr(op1);
           string op2_str = getStringFromValuePtr(op2);
-
-          // Extract the lvalue's name
           name = getOperandFromInst(&I);
 
           // Type of both operands and result will be that of op1
@@ -233,31 +236,18 @@ static void analyse(const char *name, Module *M) {
           name_type_map.insert(make_pair(op2_str, op1_type));
           name_type_map.insert(make_pair(name, op1_type));
           reg_relation_map.insert(make_pair(name, op1_str));
-          // errs() << "Operand 1: " << op1_str << "\n";
-          // errs() << "Operand 2: " << op2_str << "\n";
-          // errs() << "lvalue's name: " << name << "\n";
-          // errs() << "Their types: ";
-          // op1_type->dump();
-          // errs() << "\n";
         }
 
         if (AllocaInst *AI = dyn_cast<AllocaInst>(&I)) {
           ptr_type = AI->getType();
           name = AI->getName().str();
-          // errs() << name << " has type: ";
-          // ptr_type->dump();
-          // errs() << "\n";
           name_type_map.erase(name); // Shouldn't happen, but just in case
           name_type_map.insert(make_pair(name, ptr_type));
         }
 
         if (GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(&I)) {
           Type *ptr_operand_type = GEPI->getPointerOperandType();
-          // errs() << "Pointer Operand Type of GEP: ";
-          // ptr_operand_type->dump();
-          // errs() << "\n";
           name = getOperandFromInst(GEPI);
-          // errs() << "Name of lvalue: " << name << "\n";
           string ptr_operand = getPointerOperandFromInst(GEPI, GEPI->getPointerOperand());
           name_type_map.erase(name);
           reg_relation_map.erase(name);
@@ -266,18 +256,11 @@ static void analyse(const char *name, Module *M) {
 
           // Analyse and report non-array pointer arithmetic
           if (isDoingPtrArith(GEPI)) {
-            // First we get the direct parent of the register.
-            // We check how it is being dereferenced
-            // Example:
-            // parent type i32***, getelementptr type i32**, that means the dereference is 2 hops away
-            // Then we find the parents that are 2 hops away
-            // In terms of llvm:
-            // %3 = load i32**** %d, align 8, !dbg !28
-            // %4 = load i32*** %3, align 8, !dbg !28
-            // %5 = load i32** %4, align 8, !dbg !28
-            // %add.ptr1 = getelementptr inbounds i32* %5, i64 1
-            string current = getObjectThatIsBeingDereferenced(name, ptr_operand_type, reg_relation_map, name_type_map);
-            if (!name_type_map.at(current)->getArrayElementType()->isArrayTy()) {
+            // We check if the address that is being used for pointer arithmetic
+            // is an address corresponds to an array
+            // Go to the function for more explanation on how this is done
+            string object = getObjectThatIsBeingDereferenced(name, ptr_operand_type, reg_relation_map, name_type_map);
+            if (!name_type_map.at(object)->getArrayElementType()->isArrayTy()) {
               printDetectedAnalysis(GEPI, F.getName().str());
             }
           }
@@ -286,11 +269,6 @@ static void analyse(const char *name, Module *M) {
         // Check if I is load
         if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
           Type *ptr_operand_type = LI->getPointerOperand()->getType();
-          // errs() << "Pointer Operand Type of LI: ";
-          // ptr_operand_type->dump();
-          // errs() << "\n";
-
-          // Extract the lvalue's name
           name = getOperandFromInst(LI);
           string pointerOperand = getPointerOperandFromInst(LI, LI->getPointerOperand());
           reg_relation_map.erase(name);
@@ -306,8 +284,6 @@ static void analyse(const char *name, Module *M) {
           Value *ptr_operand = SI->getPointerOperand();
           string val_operand_string = getStringFromValuePtr(val_operand);
           string ptr_operand_string = getStringFromValuePtr(ptr_operand);
-          // errs() << "Value Operand of Store: " << val_operand->getName().str() << "\n";
-          // errs() << "Pointer Operand of Store: " << ptr_operand->getName().str() << "\n";
 
           // This happens whenever it is a global array or global structs
           // Example: store i32* getelementptr inbounds ([4 x i32]* @a, i32 0, i32 0), i32** %b, align 8
@@ -321,10 +297,13 @@ static void analyse(const char *name, Module *M) {
                 }
             }
           } else if (isValueNameEmpty(val_operand)) {
+            // We need to check if the value is in our name_type_map,
+            // this happens whenever there is a global variable
             if (name_type_map.find(val_operand_string) == name_type_map.end()) {
               name_type_map.insert(make_pair(val_operand_string, val_operand->getType()));
             }
-            // Check cycle, we need to prevent cycles
+            // We check if the value is just the updated value
+            // e.g. If we don't check this, we would create a cycle in reg_relation_map
             string parent = val_operand_string;
             while(reg_relation_map.find(parent) != reg_relation_map.end() && parent != ptr_operand_string) {
               parent = reg_relation_map.at(parent);
@@ -340,19 +319,7 @@ static void analyse(const char *name, Module *M) {
       }
     }
   }
-  // Print the relation
-  // errs() << "===== Registry relationships =====\n";
-  // for (auto &x : reg_relation_map) {
-  //   errs() << x.first << " is derived from: " << x.second << "\n";
-  //   errs() << "\n";
-  // }
-  // Print the map
-  // errs() << "===== Types of the names =====\n";
-  // for (auto &x : name_type_map) {
-  //   errs() << x.first << " has type: ";
-  //   x.second->dump();
-  //   errs() << "\n";
-  // }
+  printEndAnalysis();
 }
 
 /*
